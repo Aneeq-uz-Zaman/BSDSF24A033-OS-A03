@@ -2,7 +2,7 @@
 
 CC      = gcc
 CFLAGS  = -Wall -g -Iinclude
-LDFLAGS =
+LDFLAGS = -lreadline
 
 SRC_DIR = src
 OBJ_DIR = obj

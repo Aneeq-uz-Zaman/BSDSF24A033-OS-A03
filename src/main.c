@@ -4,7 +4,11 @@ int main() {
     char* cmdline;
     char** arglist;
 
-    while ((cmdline = read_cmd(PROMPT, stdin)) != NULL) {
+    init_readline();
+
+    // readline() prints the prompt, handles line editing, arrow keys and
+    // Tab, and returns a malloc'd line (NULL on Ctrl+D).
+    while ((cmdline = readline(PROMPT)) != NULL) {
         // !n must be handled before tokenizing and before saving to history:
         // the line is replaced by command n and then runs as if typed.
         if (cmdline[0] == '!') {
@@ -17,7 +21,10 @@ int main() {
             printf("%s\n", cmdline);   // show which command is being re-run
         }
 
-        add_to_history(cmdline);
+        add_to_history(cmdline);       // our own list, used by "history" and !n
+        if (cmdline[0] != '\0') {
+            add_history(cmdline);      // readline's list, used by Up/Down arrows
+        }
 
         if ((arglist = tokenize(cmdline)) != NULL) {
             // Built-ins (cd, exit, ...) run inside the shell process itself;
