@@ -99,6 +99,13 @@ int handle_builtin(char** arglist) {
         printf("  exit            Exit the shell\n");
         printf("  help            Show this help message\n");
         printf("  jobs            List background jobs\n");
+        printf("  history         Show the last %d commands\n", HISTORY_SIZE);
+        printf("  !n              Re-run command number n from history\n");
+        return 1;
+    }
+
+    if (strcmp(cmd, "history") == 0) {
+        show_history();
         return 1;
     }
 
