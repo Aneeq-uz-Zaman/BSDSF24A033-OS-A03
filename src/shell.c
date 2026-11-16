@@ -60,3 +60,52 @@ char** tokenize(char* cmdline) {
     arglist[argnum] = NULL;
     return arglist;
 }
+/*
+ * handle_builtin()
+ * Checks whether arglist[0] is a built-in command. If it is, runs it
+ * inside the shell process and returns 1. Otherwise returns 0 so the
+ * caller runs it as an external command with fork-exec-wait.
+ *
+ * cd and exit must be built-ins: a child process changing its own
+ * directory or exiting has no effect on the parent shell.
+ */
+int handle_builtin(char** arglist) {
+    char* cmd = arglist[0];
+
+    if (strcmp(cmd, "exit") == 0) {
+        printf("Shell exited.\n");
+        exit(0);
+    }
+
+    if (strcmp(cmd, "cd") == 0) {
+        // "cd" with no argument goes to the HOME directory, like bash
+        char* dir = arglist[1];
+        if (dir == NULL) {
+            dir = getenv("HOME");
+            if (dir == NULL) {
+                fprintf(stderr, "cd: HOME not set\n");
+                return 1;
+            }
+        }
+        if (chdir(dir) != 0) {
+            perror("cd");
+        }
+        return 1;
+    }
+
+    if (strcmp(cmd, "help") == 0) {
+        printf("Built-in commands:\n");
+        printf("  cd <directory>  Change the current working directory\n");
+        printf("  exit            Exit the shell\n");
+        printf("  help            Show this help message\n");
+        printf("  jobs            List background jobs\n");
+        return 1;
+    }
+
+    if (strcmp(cmd, "jobs") == 0) {
+        printf("Job control not yet implemented.\n");
+        return 1;
+    }
+
+    return 0; // not a built-in
+}
