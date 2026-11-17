@@ -97,11 +97,16 @@ static void apply_redirection(command_t* cmd) {
 }
 
 /*
- * Runs a whole line: a single command, or a pipeline cmd0 | cmd1 | ... | cmdN-1.
+ * Runs one command, or a pipeline cmd0 | cmd1 | ... | cmdN-1.
  * For N commands we create N-1 pipes and fork N children:
  *   child i reads from pipe i-1 (if i > 0) and writes to pipe i (if i < N-1).
+ *
+ * background == 0: wait for the children; return the exit status of the
+ *                  last command (0 = success).
+ * background == 1: do NOT wait; record the job and return 0 immediately.
+ *                  The children are reaped later by reap_jobs().
  */
-int execute(char** arglist) {
+int execute(char** arglist, int background) {
     command_t cmds[MAX_CMDS];
     int ncmds = parse_pipeline(arglist, cmds);
     if (ncmds < 0) {
@@ -161,10 +166,25 @@ int execute(char** arglist) {
         close(pipes[i][1]);
     }
 
-    // Wait for every child in the pipeline
+    if (started < ncmds) {   // a fork failed: clean up what did start
+        for (int i = 0; i < started; i++) waitpid(pids[i], NULL, 0);
+        return -1;
+    }
+
+    if (background) {
+        // Parent does not wait: remember the job and go back to the prompt
+        add_job(pids, started, arglist);
+        return 0;
+    }
+
+    // Foreground: wait for every child in the pipeline
     int status = 0;
     for (int i = 0; i < started; i++) {
         waitpid(pids[i], &status, 0);
     }
-    return 0;
+
+    // Exit status of the last command (status of the whole pipeline)
+    if (WIFEXITED(status))
+        return WEXITSTATUS(status);
+    return 128 + WTERMSIG(status);   // killed by a signal
 }

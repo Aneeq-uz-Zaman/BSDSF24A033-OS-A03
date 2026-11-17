@@ -1,14 +1,69 @@
 #include "shell.h"
 
+/*
+ * Runs one command (which may contain < > |).
+ * A simple built-in (cd, exit, ...) runs inside the shell process.
+ * Anything else, any line with < > |, and any background command goes to
+ * execute(), which does fork-exec(-wait).
+ */
+static int run_command(char** argv, int background) {
+    if (!background && !has_operators(argv) && handle_builtin(argv)) {
+        return 0;
+    }
+    return execute(argv, background);
+}
+
+/*
+ * Splits the tokens of one line at ";" and "&" and runs each part in order.
+ *   "a ; b"  -> run a, WAIT for it, then run b
+ *   "a & b"  -> start a in the background, then run b straight away
+ *   "a &"    -> start a in the background
+ */
+static void run_line(char** arglist) {
+    char* part[MAXARGS + 1];   // tokens of the current command (pointers only)
+    int n = 0;
+
+    for (int i = 0; ; i++) {
+        char* tok = arglist[i];
+        int is_semi = (tok != NULL && strcmp(tok, ";") == 0);
+        int is_amp  = (tok != NULL && strcmp(tok, "&") == 0);
+
+        if (tok != NULL && !is_semi && !is_amp) {
+            part[n++] = tok;   // ordinary token: add to current command
+            continue;
+        }
+
+        // Reached ";", "&" or the end of the line: run what we collected
+        part[n] = NULL;
+        if (n > 0) {
+            run_command(part, is_amp);
+        } else if (is_semi || is_amp) {
+            fprintf(stderr, "syntax error near '%s'\n", tok);
+            return;
+        }
+        n = 0;
+
+        if (tok == NULL) break;
+    }
+}
+
 int main() {
     char* cmdline;
     char** arglist;
 
     init_readline();
 
-    // readline() prints the prompt, handles line editing, arrow keys and
-    // Tab, and returns a malloc'd line (NULL on Ctrl+D).
-    while ((cmdline = readline(PROMPT)) != NULL) {
+    while (1) {
+        // Reap finished background jobs (zombies) before every prompt
+        reap_jobs();
+
+        // readline() prints the prompt, handles line editing, arrow keys and
+        // Tab, and returns a malloc'd line (NULL on Ctrl+D).
+        cmdline = readline(PROMPT);
+        if (cmdline == NULL) {
+            break;
+        }
+
         // !n must be handled before tokenizing and before saving to history:
         // the line is replaced by command n and then runs as if typed.
         if (cmdline[0] == '!') {
@@ -27,12 +82,7 @@ int main() {
         }
 
         if ((arglist = tokenize(cmdline)) != NULL) {
-            // A simple built-in (cd, exit, ...) runs inside the shell process.
-            // Anything else, or any line with < > |, goes to execute(),
-            // which does fork-exec-wait with redirection and pipes.
-            if (has_operators(arglist) || handle_builtin(arglist) == 0) {
-                execute(arglist);
-            }
+            run_line(arglist);
 
             // Free the memory allocated by tokenize()
             for (int i = 0; arglist[i] != NULL; i++) {
