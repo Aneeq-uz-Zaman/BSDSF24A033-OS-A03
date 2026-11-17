@@ -27,9 +27,10 @@ int main() {
         }
 
         if ((arglist = tokenize(cmdline)) != NULL) {
-            // Built-ins (cd, exit, ...) run inside the shell process itself;
-            // only external commands go through fork-exec-wait.
-            if (handle_builtin(arglist) == 0) {
+            // A simple built-in (cd, exit, ...) runs inside the shell process.
+            // Anything else, or any line with < > |, goes to execute(),
+            // which does fork-exec-wait with redirection and pipes.
+            if (has_operators(arglist) || handle_builtin(arglist) == 0) {
                 execute(arglist);
             }
 
