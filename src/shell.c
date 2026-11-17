@@ -2,13 +2,13 @@
 
 // Characters that are tokens on their own, even without spaces around them
 static int is_operator(char c) {
-    return c == '<' || c == '>' || c == '|';
+    return c == '<' || c == '>' || c == '|' || c == ';' || c == '&';
 }
 
 /*
  * Splits a command line into a NULL-terminated array of malloc'd tokens.
  *   - Words are separated by spaces/tabs.
- *   - <, > and | always become separate tokens, so "ls>out" works too.
+ *   - <, >, |, ; and & always become separate tokens, so "ls>out" works too.
  *   - Text inside "double" or 'single' quotes stays in one token and the
  *     quotes are removed, so  grep "root"  passes  root  to grep.
  * Returns NULL for an empty line or if there are too many tokens.
@@ -105,6 +105,12 @@ int handle_builtin(char** arglist) {
         printf("  jobs            List background jobs\n");
         printf("  history         Show the last %d commands\n", HISTORY_SIZE);
         printf("  !n              Re-run command number n from history\n");
+        printf("\nOperators:\n");
+        printf("  cmd < file      Read input from file\n");
+        printf("  cmd > file      Write output to file\n");
+        printf("  cmd1 | cmd2     Pipe output of cmd1 into cmd2\n");
+        printf("  cmd1 ; cmd2     Run cmd1, then cmd2\n");
+        printf("  cmd &           Run cmd in the background\n");
         return 1;
     }
 
@@ -114,7 +120,7 @@ int handle_builtin(char** arglist) {
     }
 
     if (strcmp(cmd, "jobs") == 0) {
-        printf("Job control not yet implemented.\n");
+        print_jobs();
         return 1;
     }
 
