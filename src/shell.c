@@ -105,6 +105,12 @@ int handle_builtin(char** arglist) {
         printf("  jobs            List background jobs\n");
         printf("  history         Show the last %d commands\n", HISTORY_SIZE);
         printf("  !n              Re-run command number n from history\n");
+        printf("  set             List all shell variables and their values\n");
+        printf("\nVariables:\n");
+        printf("  NAME=value      Assign a value to a shell variable\n");
+        printf("  $NAME           Replaced by the variable's value\n");
+        printf("\nControl structure:\n");
+        printf("  if cmd / then / else / fi   Run a block based on cmd's exit status\n");
         printf("\nOperators:\n");
         printf("  cmd < file      Read input from file\n");
         printf("  cmd > file      Write output to file\n");
