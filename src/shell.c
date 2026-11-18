@@ -119,6 +119,11 @@ int handle_builtin(char** arglist) {
         return 1;
     }
 
+    if (strcmp(cmd, "set") == 0) {
+        print_vars();
+        return 1;
+    }
+
     if (strcmp(cmd, "jobs") == 0) {
         print_jobs();
         return 1;

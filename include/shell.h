@@ -37,6 +37,14 @@ int execute_line(char* line);
 int is_if_line(char* line);
 int run_if_block(char* first_line);
 
+// Shell variables (vars.c)
+void set_var(const char* name, const char* value);
+const char* get_var(const char* name);
+void print_vars(void);
+int is_assignment(const char* token);
+void do_assignment(const char* token);
+void expand_variables(char** arglist);
+
 // Background jobs (jobs.c)
 void add_job(pid_t pids[], int npids, char** argv);
 void reap_jobs(void);
