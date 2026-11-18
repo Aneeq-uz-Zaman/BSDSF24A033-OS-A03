@@ -7,6 +7,17 @@
  * execute(), which does fork-exec(-wait).
  */
 static int run_command(char** argv, int background) {
+    // Variable assignment(s) like  MSG=hello  or  A=1 B=2 : handled
+    // inside the shell (no fork), otherwise the child's copy would be lost.
+    int all_assignments = 1;
+    for (int i = 0; argv[i] != NULL; i++) {
+        if (!is_assignment(argv[i])) { all_assignments = 0; break; }
+    }
+    if (all_assignments) {
+        for (int i = 0; argv[i] != NULL; i++) do_assignment(argv[i]);
+        return 0;
+    }
+
     if (!background && !has_operators(argv) && handle_builtin(argv)) {
         return 0;
     }
@@ -60,6 +71,9 @@ int execute_line(char* line) {
     if (arglist == NULL) {
         return 0;   // empty line
     }
+
+    // Expansion step: replace $NAME with its value BEFORE running anything
+    expand_variables(arglist);
 
     int status = run_line(arglist);
 

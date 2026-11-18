@@ -9,7 +9,7 @@
  * - Any later word          -> complete file names (readline's default)
  */
 
-static const char* builtins[] = { "cd", "exit", "help", "jobs", "history", NULL };
+static const char* builtins[] = { "cd", "exit", "help", "jobs", "history", "set", NULL };
 
 /*
  * Generator function called repeatedly by readline.
