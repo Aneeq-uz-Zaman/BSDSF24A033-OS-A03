@@ -18,10 +18,12 @@ static int run_command(char** argv, int background) {
  *   "a ; b"  -> run a, WAIT for it, then run b
  *   "a & b"  -> start a in the background, then run b straight away
  *   "a &"    -> start a in the background
+ * Returns the exit status of the last command run.
  */
-static void run_line(char** arglist) {
+static int run_line(char** arglist) {
     char* part[MAXARGS + 1];   // tokens of the current command (pointers only)
     int n = 0;
+    int status = 0;
 
     for (int i = 0; ; i++) {
         char* tok = arglist[i];
@@ -36,20 +38,40 @@ static void run_line(char** arglist) {
         // Reached ";", "&" or the end of the line: run what we collected
         part[n] = NULL;
         if (n > 0) {
-            run_command(part, is_amp);
+            status = run_command(part, is_amp);
         } else if (is_semi || is_amp) {
             fprintf(stderr, "syntax error near '%s'\n", tok);
-            return;
+            return 1;
         }
         n = 0;
 
         if (tok == NULL) break;
     }
+    return status;
+}
+
+/*
+ * Tokenizes and runs one command line, then frees the tokens.
+ * Used by the main loop and by the if-then-else-fi code.
+ * Returns the exit status (0 = success).
+ */
+int execute_line(char* line) {
+    char** arglist = tokenize(line);
+    if (arglist == NULL) {
+        return 0;   // empty line
+    }
+
+    int status = run_line(arglist);
+
+    for (int i = 0; arglist[i] != NULL; i++) {
+        free(arglist[i]);
+    }
+    free(arglist);
+    return status;
 }
 
 int main() {
     char* cmdline;
-    char** arglist;
 
     init_readline();
 
@@ -81,14 +103,10 @@ int main() {
             add_history(cmdline);      // readline's list, used by Up/Down arrows
         }
 
-        if ((arglist = tokenize(cmdline)) != NULL) {
-            run_line(arglist);
-
-            // Free the memory allocated by tokenize()
-            for (int i = 0; arglist[i] != NULL; i++) {
-                free(arglist[i]);
-            }
-            free(arglist);
+        if (is_if_line(cmdline)) {
+            run_if_block(cmdline);     // reads more lines up to "fi"
+        } else {
+            execute_line(cmdline);
         }
         free(cmdline);
     }

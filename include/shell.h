@@ -30,6 +30,13 @@ void add_to_history(const char* cmdline);
 void show_history(void);
 char* expand_history(const char* cmdline);
 
+// Runs one full command line (tokenize + ; & | < >), returns exit status (main.c)
+int execute_line(char* line);
+
+// if-then-else-fi (control.c)
+int is_if_line(char* line);
+int run_if_block(char* first_line);
+
 // Background jobs (jobs.c)
 void add_job(pid_t pids[], int npids, char** argv);
 void reap_jobs(void);
